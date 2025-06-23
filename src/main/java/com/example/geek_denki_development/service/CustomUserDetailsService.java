@@ -14,22 +14,22 @@ import com.example.geek_denki_development.entity.Administrator;
 import com.example.geek_denki_development.repository.AdministratorRepository;
 
 @Service
-public class AdministratorDetailsService implements UserDetailsService {
-
+public class CustomUserDetailsService implements UserDetailsService {
+    
     @Autowired
     private AdministratorRepository administratorRepository;
-
+    
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Administrator administrator = administratorRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("ユーザーが見つかりません: " + email));
+            .orElseThrow(() -> new UsernameNotFoundException("メールアドレスが見つかりません: " + email));
         
-        String role = administrator.getRoleId() == 1 ? "ADMIN" : "USER";
+        String role = administrator.getPermissionId() == 1L ? "ADMIN" : "USER";
         
         return User.builder()
-                .username(administrator.getEmail())
-                .password(administrator.getPasswordHash())
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)))
-                .build();
+            .username(administrator.getEmail())
+            .password(administrator.getPasswordHash())
+            .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)))
+            .build();
     }
 }
