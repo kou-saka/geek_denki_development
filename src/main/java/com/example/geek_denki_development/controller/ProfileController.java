@@ -95,6 +95,8 @@ public class ProfileController {
         form.setFirstName(administrator.getFirstName());
         form.setEmail(administrator.getEmail());
         form.setPhoneNumber(administrator.getPhoneNumber());
+        
+        // 役職と権限は表示のみで編集不可とするため、セットするが編集はさせない
         form.setRoleId(administrator.getRoleId());
         form.setPermissionId(administrator.getPermissionId());
         
@@ -102,14 +104,22 @@ public class ProfileController {
         Store store = storeRepository.findById(administrator.getStoreId())
                 .orElseThrow(() -> new RuntimeException("店舗情報が見つかりません"));
         
+        // 役職名と権限名を取得（表示用）
+        Role role = roleRepository.findById(administrator.getRoleId())
+                .orElseThrow(() -> new RuntimeException("役職情報が見つかりません"));
+        
+        Permission permission = permissionRepository.findById(administrator.getPermissionId())
+                .orElseThrow(() -> new RuntimeException("権限情報が見つかりません"));
+        
         // モデルに情報を追加
         model.addAttribute("profileEditForm", form);
         model.addAttribute("storeName", store.getName());
-        model.addAttribute("roles", roleRepository.findAll());
-        model.addAttribute("permissions", permissionRepository.findAll());
+        model.addAttribute("roleName", role.getName());
+        model.addAttribute("permissionName", permission.getName());
         
         return "profile-edit";
     }
+
     
     // プロフィール更新処理
     @PostMapping("/profile/edit")
