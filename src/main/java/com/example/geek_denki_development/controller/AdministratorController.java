@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -20,16 +21,31 @@ import com.example.geek_denki_development.entity.Administrator;
 import com.example.geek_denki_development.entity.Permission;
 import com.example.geek_denki_development.entity.Role;
 import com.example.geek_denki_development.form.AdministratorEditForm;
+import com.example.geek_denki_development.form.AdministratorForm;
 import com.example.geek_denki_development.repository.AdministratorRepository;
 import com.example.geek_denki_development.repository.PermissionRepository;
 import com.example.geek_denki_development.repository.RoleRepository;
+import com.example.geek_denki_development.repository.StoreRepository;
 
 
 @Controller
 public class AdministratorController {
 
+    // すべてのフィールド注入をクラスの冒頭にまとめる
     @Autowired
     private AdministratorRepository administratorRepository;
+    
+    @Autowired
+    private RoleRepository roleRepository;
+    
+    @Autowired
+    private PermissionRepository permissionRepository;
+    
+    @Autowired
+    private StoreRepository storeRepository;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @GetMapping("/administrators")
     public String listAdministrators(Model model) {
@@ -57,11 +73,7 @@ public class AdministratorController {
         
         return "administrators/list";
     }
-    @Autowired
-    private RoleRepository roleRepository;
 
-    @Autowired
-    private PermissionRepository permissionRepository;
 
     @GetMapping("/administrators/{id}")
     public String viewAdministrator(@PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes) {
@@ -88,6 +100,14 @@ public class AdministratorController {
             return "redirect:/administrators";
         }
     }
+    
+    //NotFoundExceptionの(独自例外クラスの追加)
+    public class NotFoundException extends RuntimeException {
+		public NotFoundException(String message) {
+			super(message);
+		}
+	}
+    
  // 編集画面の表示
     @GetMapping("/administrators/{id}/edit")
     public String editAdministratorForm(@PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes) {
@@ -180,6 +200,72 @@ public class AdministratorController {
             return "redirect:/administrators";
         }
     }
+    
+ // 管理者作成画面の表示
+
+    @GetMapping("/administrators/create")
+    public String createAdministratorForm(Model model) {
+        model.addAttribute("administratorForm", new AdministratorForm());
+        model.addAttribute("stores", storeRepository.findAll());
+        model.addAttribute("roles", roleRepository.findAll());
+        model.addAttribute("permissions", permissionRepository.findAll());
+        return "administrators/create";
+    }
+
+    // 管理者作成処理
+    
+    @PostMapping("/administrators/create")
+    public String createAdministrator(@Valid @ModelAttribute("administratorForm") AdministratorForm form, 
+                                  BindingResult bindingResult,
+                                  Model model,
+                                  RedirectAttributes redirectAttributes) {
+        
+        // バリデーションエラーがある場合は作成フォームに戻る
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("stores", storeRepository.findAll());
+            model.addAttribute("roles", roleRepository.findAll());
+            model.addAttribute("permissions", permissionRepository.findAll());
+            return "administrators/create";
+        }
+        
+        // メールアドレスの重複チェック
+        if (administratorRepository.findByEmail(form.getEmail()).isPresent()) {
+            bindingResult.rejectValue("email", "error.email", "このメールアドレスは既に登録されています");
+            model.addAttribute("stores", storeRepository.findAll());
+            model.addAttribute("roles", roleRepository.findAll());
+            model.addAttribute("permissions", permissionRepository.findAll());
+            return "administrators/create";
+        }
+        
+        try {
+            // 管理者オブジェクトの作成と保存
+            Administrator administrator = new Administrator();
+            administrator.setStoreId(form.getStoreId());
+            administrator.setLastName(form.getLastName());
+            administrator.setFirstName(form.getFirstName());
+            administrator.setEmail(form.getEmail());
+            administrator.setPasswordHash(passwordEncoder.encode(form.getPassword()));
+            administrator.setPhoneNumber(form.getPhoneNumber());
+            administrator.setRoleId(form.getRoleId());
+            administrator.setPermissionId(form.getPermissionId());
+            
+            LocalDateTime now = LocalDateTime.now();
+            administrator.setCreatedAt(now);
+            administrator.setUpdatedAt(now);
+            
+            administratorRepository.save(administrator);
+            
+            // 成功メッセージをセット
+            redirectAttributes.addFlashAttribute("successMessage", "管理者を登録しました");
+            
+            return "redirect:/administrators";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "管理者の登録に失敗しました");
+            return "redirect:/administrators";
+        }
+    }
+
+
 
 
 

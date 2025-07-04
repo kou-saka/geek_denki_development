@@ -9,6 +9,10 @@
     <div class="container mt-4">
         <header class="mb-4">
             <h1 class="text-center">管理者一覧</h1>
+			<!-- list.htmlの<header>部分に以下を追加 -->
+			<div class="alert alert-success" th:if="${successMessage}" th:text="${successMessage}"></div>
+			<div class="alert alert-danger" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
         </header>
         
         <div class="card">

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>店舗編集 - Geek電機管理システム</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <style>
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <header class="mb-4">
+            <h1 class="text-center">店舗編集</h1>
+        </header>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h2>店舗情報編集</h2>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/stores/{id}/edit(id=${storeEditForm.id})}" 
+                              th:object="${storeEditForm}" method="post" novalidate>
+                            
+                            <!-- 非表示フィールド：ID -->
+                            <input type="hidden" th:field="*{id}" />
+                            
+                            <!-- 店舗ID（表示のみ） -->
+                            <div class="mb-3">
+                                <label class="form-label">店舗ID</label>
+                                <input type="text" class="form-control" th:value="*{id}" readonly />
+                            </div>
+                            
+                            <!-- 店舗名（表示のみ） -->
+                            <div class="mb-3">
+                                <label class="form-label">店舗名</label>
+                                <input type="text" class="form-control" th:field="*{name}" readonly />
+                            </div>
+                            
+                            <!-- 住所（編集可能） -->
+                            <div class="mb-3">
+                                <label for="address" class="form-label">住所</label>
+                                <input type="text" class="form-control" id="address" th:field="*{address}" required>
+                                <div class="error" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
+                            </div>
+                            
+                            <!-- ボタン -->
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary">更新</button>
+                                <a href="/stores" class="btn btn-secondary">店舗詳細へ戻る</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

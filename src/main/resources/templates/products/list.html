@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>商品一覧 - Geek電機管理システム</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <header class="mb-4">
+            <h1 class="text-center">商品一覧</h1>
+            <div class="text-end">
+                <a href="/dashboard" class="btn btn-secondary">ダッシュボードに戻る</a>
+            </div>
+        </header>
+        
+        <!-- 検索フォーム -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">商品検索</h5>
+            </div>
+            <div class="card-body">
+                <form action="/products" method="get" class="row g-3">
+                    <!-- 大カテゴリ選択 -->
+                    <div class="col-md-4">
+                        <label for="categoryId" class="form-label">大カテゴリ</label>
+                        <select id="categoryId" name="categoryId" class="form-select" onchange="loadMidCategories()">
+                            <option value="">すべてのカテゴリ</option>
+                            <option th:each="category : ${categories}"
+                                    th:value="${category.id}"
+                                    th:text="${category.name}"
+                                    th:selected="${category.id == selectedCategoryId}">
+                            </option>
+                        </select>
+                    </div>
+                    <!-- 中カテゴリ選択 -->
+                    <div class="col-md-4">
+                        <label for="midCategoryId" class="form-label">中カテゴリ</label>
+                        <select id="midCategoryId" name="midCategoryId" class="form-select" onchange="loadSmallCategories()">
+                            <option value="">選択してください</option>
+                            <option th:if="${midCategories != null}" 
+                                    th:each="midCategory : ${midCategories}"
+                                    th:value="${midCategory.id}"
+                                    th:text="${midCategory.name}"
+                                    th:selected="${midCategory.id == selectedMidCategoryId}">
+                            </option>
+                        </select>
+                    </div>
+                    <!-- 小カテゴリ選択 -->
+                    <div class="col-md-4">
+                        <label for="smallCategoryId" class="form-label">小カテゴリ</label>
+                        <select id="smallCategoryId" name="smallCategoryId" class="form-select">
+                            <option value="">選択してください</option>
+                            <option th:if="${smallCategories != null}" 
+                                    th:each="smallCategory : ${smallCategories}"
+                                    th:value="${smallCategory.id}"
+                                    th:text="${smallCategory.name}"
+                                    th:selected="${smallCategory.id == selectedSmallCategoryId}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label for="keyword" class="form-label">キーワード</label>
+                        <input type="text" id="keyword" name="keyword" class="form-control" 
+                               th:value="${keyword}" placeholder="商品名で検索"
+                               maxlength="50" pattern=".{0,50}">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">検索</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- アラートメッセージ -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        
+        <!-- 商品一覧テーブル -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">商品一覧</h5>
+            </div>
+            <div class="card-body">
+                <div th:if="${products.isEmpty()}" class="alert alert-info">
+                    商品が見つかりませんでした。
+                </div>
+                
+                <div th:unless="${products.isEmpty()}" class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>商品名</th>
+                                <th>価格</th>
+                                <th>在庫数</th>
+                                <th>カテゴリ</th>
+                                <!--<th>メーカー</th>-->
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="product : ${products}">
+                                <td th:text="${product.id}"></td>
+                                <td th:text="${product.name}"></td>
+                                <td th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + '円'"></td>
+                                <td th:text="${product.stockQuantity}"></td>
+                                <td th:text="${product.category != null ? product.category.name : '未分類'}"></td>
+                                <!--<td th:text="${product.maker != null ? product.maker.name : ''}"></td>-->
+                                <td>
+                                    <a th:href="@{/products/{id}(id=${product.id})}" class="btn btn-sm btn-info">詳細</a>
+                                    <!--<a th:href="@{/products/{id}/edit(id=${product.id})}" class="btn btn-sm btn-warning">編集</a>-->
+                                    <a th:href="@{/orders/create(productId=${product.id})}" class="btn btn-sm btn-primary">発注</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- ページネーション -->
+                <div th:if="${totalPages > 1}" class="d-flex justify-content-center mt-4">
+                    <nav>
+                        <ul class="pagination">
+                            <li class="page-item" th:classappend="${currentPage == 0 ? 'disabled' : ''}">
+                                <a class="page-link" 
+                                   th:href="@{/products(page=${currentPage - 1}, size=${pageSize}, categoryId=${selectedCategoryId}, midCategoryId=${selectedMidCategoryId}, smallCategoryId=${selectedSmallCategoryId}, keyword=${keyword})}"
+                                   aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                                th:classappend="${currentPage == i ? 'active' : ''}">
+                                <a class="page-link" 
+                                   th:href="@{/products(page=${i}, size=${pageSize}, categoryId=${selectedCategoryId}, midCategoryId=${selectedMidCategoryId}, smallCategoryId=${selectedSmallCategoryId}, keyword=${keyword})}"
+                                   th:text="${i + 1}"></a>
+                            </li>
+                            <li class="page-item" th:classappend="${currentPage + 1 == totalPages ? 'disabled' : ''}">
+                                <a class="page-link" 
+                                   th:href="@{/products(page=${currentPage + 1}, size=${pageSize}, categoryId=${selectedCategoryId}, midCategoryId=${selectedMidCategoryId}, smallCategoryId=${selectedSmallCategoryId}, keyword=${keyword})}"
+                                   aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+		// 選択肢をリセットする関数
+		function resetSelect(selectElement) {
+		    selectElement.innerHTML = '<option value="">選択してください</option>';
+		    selectElement.disabled = true;
+		}
+
+		// 大カテゴリが変更されたときに中カテゴリを読み込む
+		function loadMidCategories() {
+		    const categoryId = document.getElementById('categoryId').value;
+		    const midCategorySelect = document.getElementById('midCategoryId');
+		    const smallCategorySelect = document.getElementById('smallCategoryId');
+		    
+		    // 中カテゴリと小カテゴリをリセット
+		    resetSelect(midCategorySelect);
+		    resetSelect(smallCategorySelect);
+		    
+		    if (categoryId === '') {
+		        return;
+		    }
+		    
+		    // APIから中カテゴリを取得
+		    fetch(`/api/categories/${categoryId}/mid`)
+		        .then(response => {
+		            if (!response.ok) {
+		                throw new Error('APIレスポンスエラー：' + response.status);
+		            }
+		            return response.json();
+		        })
+		        .then(data => {
+		            midCategorySelect.disabled = false;
+		            
+		            //選択肢を追加
+		            data.forEach(category => {
+		                const option = document.createElement('option');
+		                option.value = category.id;
+		                option.textContent = category.name;
+		                midCategorySelect.appendChild(option);
+		            });
+		        })
+		        .catch(error => console.error('中カテゴリの取得に失敗しました:', error));
+		}
+
+		//中カテゴリが変更されて時に小カテゴリを読み込む
+		function loadSmallCategories() {
+		    const midCategoryId = document.getElementById('midCategoryId').value;
+		    const smallCategorySelect = document.getElementById('smallCategoryId');
+
+		    // 小カテゴリをリセット
+		    resetSelect(smallCategorySelect);
+		    
+		    if (midCategoryId === '') {
+		        return;
+		    }
+		    
+		    // APIから小カテゴリを取得
+		    fetch(`/api/categories/${midCategoryId}/small`)
+		    .then(response => {
+		        if (!response.ok) {
+		            throw new Error('APIレスポンスエラー：' + response.status);
+		        }
+		        return response.json();
+		    })
+		    .then(data => {
+		        smallCategorySelect.disabled = false;
+		        
+		        //選択肢を追加
+		        data.forEach(category => {
+		            const option = document.createElement('option');
+		            option.value = category.id;
+		            option.textContent = category.name;
+		            smallCategorySelect.appendChild(option);
+		        });
+		    })
+		    .catch(error => {
+		        console.error('小カテゴリの取得に失敗しました:', error);
+		        smallCategorySelect.disabled = false;
+		        const option = document.createElement('option');
+		        option.value = "";
+		        option.textContent = "読み込みに失敗しました";
+		        smallCategorySelect.appendChild(option);
+		    });
+		}
+
+		//ページ読み込み時に中カテゴリが選択されていれば小カテゴリを読み込む
+		document.addEventListener('DOMContentLoaded', function() {
+		    const midCategoryId = document.getElementById('midCategoryId').value;
+		    const midCategorySelect = document.getElementById('midCategoryId');
+		    const smallCategorySelect = document.getElementById('smallCategoryId');
+		    
+		    // 中カテゴリが選択されている場合は小カテゴリを読み込む
+		    if (midCategorySelect.options.length > 1) {
+		        midCategorySelect.disabled = false;
+		        
+		        //選択された中カテゴリがあれば小カテゴリも有効可
+		        const selectedMidOption = midCategorySelect.options[midCategorySelect.selectedIndex];
+		        if (selectedMidOption && selectedMidOption.value !== ''){
+		            //小カテゴリが既に存在する場合は有効化
+		            if (smallCategorySelect.options.length > 1) {
+		                smallCategorySelect.disabled = false;
+		            } else {
+		                //小カテゴリが存在しない場合は小カテゴリを読み込む
+		                loadSmallCategories();                        
+		            }                    
+		        }
+		    }
+		});
+    </script>
+</body>
+</html>
